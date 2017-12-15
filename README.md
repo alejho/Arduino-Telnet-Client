@@ -1,5 +1,5 @@
 # Arduino-Telnet-Client
-a minimal (but real) telnet client for Arduino, actually able to login and send commands to a generic telnet server.
+a minimal (but real) telnet client for Arduino, <b>actually able to login and send commands to a generic telnet server.</b>
 
 <h2>Getting Started:</h2>
 It's a normal Arduino library...so just install it and take a look at the example provided to understand how to use it!<br>
