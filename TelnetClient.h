@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  * 
- * You should have received a copy of the GNU General Public License
+ * You should have negotiationd a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
@@ -32,8 +32,20 @@
  #define DEBUG_PRINT(x)
 #endif
 
+#define ARRAYSIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+const uint8_t NEGOTIATION_DELAY = 100;
+
+////////////////CONFIGURATION////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//how long the command sent may be long
 const uint8_t MAX_OUT_BUFFER_LENGTH = 64;
-const unsigned int LISTEN_TOUT = 15000;
+//how long you'll wait for an expected answer from the server
+const unsigned int LISTEN_TOUT = 20000;
+//wich characters should be interpreted as "prompt"
+const char PROMPT_CHARS[] = {'$', '>', '#'}; 
+//how long, after a "prompt char" is received you can confirm it's the real prompt and not just part of the server's answer
+const uint8_t PROMPT_REC_TOUT = 300;
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
 class telnetClient{
 
@@ -50,10 +62,13 @@ private:
 	EthernetClient* client;
 	
 	bool send(const char* buf, bool checkEcho);
-	void receive();
-	void parse();
-	bool listenUntil(char c1, char c2 = 0, char c3 = 0, char c4 = 0);
+	void negotiation();
+	void negotiate();
+	bool listenUntil(char* c, uint8_t len);
+	bool listenUntil(char c);
+	bool waitPrompt();
 	void print(char c);
+	void emptyInputBuffer(bool printIt);
 };
 
 #endif
