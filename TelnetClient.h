@@ -44,7 +44,7 @@ const unsigned int LISTEN_TOUT = 20000;
 //wich characters should be interpreted as "prompt"
 const char PROMPT_CHARS[] = {'$', '>', '#'}; 
 //how long, after a "prompt char" is received you can confirm it's the real prompt and not just part of the server's answer
-const uint8_t PROMPT_REC_TOUT = 300;
+const uint16_t PROMPT_REC_TOUT = 300;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
 class telnetClient{
