@@ -38,7 +38,7 @@ const uint8_t NEGOTIATION_DELAY = 100;
 ////////////////CONFIGURATION////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //how long the command sent may be long
-const uint8_t MAX_OUT_BUFFER_LENGTH = 64;
+const uint8_t MAX_OUT_BUFFER_LENGTH = 150;
 //how long you'll wait for an expected answer from the server
 const unsigned int LISTEN_TOUT = 20000;
 //wich characters should be interpreted as "prompt"
