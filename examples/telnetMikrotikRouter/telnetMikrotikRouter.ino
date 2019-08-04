@@ -28,7 +28,9 @@ void setup () {
   //WICH CHARACTER SHOULD BE INTERPRETED AS "PROMPT"?
   tc.setPromptChar('>');
 
-  //this is because it could be a problem to attach the serial monitor while negotiating with the server!
+  //this is to trigger manually the login 
+  //since it could be a problem to attach the serial monitor while negotiating with the server (it cause the board reset)
+  //remove it or replace it with a delay/wait of a digital input in case you're not using the serial monitors
   char key = 0;
   Serial.println("\r\npress Enter to begin:");
   do{
