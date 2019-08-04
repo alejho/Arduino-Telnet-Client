@@ -25,6 +25,7 @@
 #include <Ethernet.h>
 
 //#define TNDBG 1
+//#define MT_VM 1//for me to work with a virtual machine running a mikrotik router
 
 #ifdef TNDBG
  #define DEBUG_PRINT(x)  Serial.println (x)
@@ -36,13 +37,10 @@
 const uint8_t NEGOTIATION_DELAY = 100;
 
 ////////////////CONFIGURATION////////////////////////////////////////////////////////////////////////////////////////////////////
-
 //how long the command sent may be long
 const uint8_t MAX_OUT_BUFFER_LENGTH = 150;
 //how long you'll wait for an expected answer from the server
-const unsigned int LISTEN_TOUT = 20000;
-//wich characters should be interpreted as "prompt"
-const char PROMPT_CHARS[] = {'$', '>', '#'}; 
+const unsigned int LISTEN_TOUT = 5000;
 //how long, after a "prompt char" is received you can confirm it's the real prompt and not just part of the server's answer
 const uint16_t PROMPT_REC_TOUT = 300;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,19 +54,19 @@ public:
     bool login(IPAddress serverIpAddress, const char* username, const char* password, uint8_t port = 23);
 	bool sendCommand(const char* cmd);
     void disconnect();
+    void setPromptChar(char c);
 
 private:
 	
 	EthernetClient* client;
+	char m_promptChar = '>';
 	
-	bool send(const char* buf, bool checkEcho);
-	void negotiation();
+	bool send(const char* buf, bool waitEcho = true);
 	void negotiate();
-	bool listenUntil(char* c, uint8_t len);
+	void listen();
 	bool listenUntil(char c);
 	bool waitPrompt();
 	void print(char c);
-	void emptyInputBuffer(bool printIt);
 };
 
 #endif

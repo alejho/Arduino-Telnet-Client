@@ -15,8 +15,26 @@ IPAddress mikrotikRouterIp (192, 168, 1, 2);
 void setup () { 
 
                                        
-  Serial.begin (115200);                              
+  Serial.begin (9600);                              
   Ethernet.begin (clientMAC, clientIp);   
+  
+  //want to use dhcp?
+  //if (!Ethernet.begin (clientMAC)){
+       //Serial.println("\r\nDHCP error");
+       //while(1);
+  //}
+
+
+  //WICH CHARACTER SHOULD BE INTERPRETED AS "PROMPT"?
+  tc.setPromptChar('>');
+
+  //this is because it could be a problem to attach the serial monitor while negotiating with the server!
+  char key = 0;
+  Serial.println("\r\npress Enter to begin:");
+  do{
+    key = Serial.read();
+  }while(key<=0);
+  
   //PUT HERE YOUR USERNAME/PASSWORD
   if(tc.login(mikrotikRouterIp, "admin", "")){        //tc.login(mikrotikRouterIp, "admin", "", 1234) if you want to specify a port different than 23
     tc.sendCommand("ip");

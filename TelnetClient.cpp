@@ -35,24 +35,26 @@ bool telnetClient::login(IPAddress serverIpAddress, const char* username, const 
 	DEBUG_PRINT(F("login|connecting..."));
 	if(this->client->connect(serverIpAddress, port)){
 		DEBUG_PRINT(F("login|connected!"));
-		//negotation
-		this->negotiation();
-		//we should be asked for the login username at this point...
+		//here there will be the initial negotiation
+		//listenUntil(':');
+		listen();
 		DEBUG_PRINT(F("login|sending username"));
-		if (!this->send(username, true)) return false; 
-		//negotiation until the server show the password prompt
-		if (!this->listenUntil(':')) return false;
+		if (!this->send(username, false)) return false; 
+		listenUntil(':');
 		DEBUG_PRINT(F("login|sending password"));
 		if (!this->send(password, false)) return false;
-		//negotiation until the server show the command prompt or timeout
 		
+		#ifdef MT_VM
 		//mikrotik router with demo license
-		//this->listenUntil('!');
-		//emptyInputBuffer(true);
-		//this->send("", false);
-		////////////////////////////
+		this->listenUntil('!');
+		this->send("", false);
+		#endif
 		
 		return this->waitPrompt();
+		//listen();
+		//return true;
+		
+		
 	}
 	else{
 		DEBUG_PRINT(F("login|connection failed!"));
@@ -62,10 +64,13 @@ bool telnetClient::login(IPAddress serverIpAddress, const char* username, const 
 
 bool telnetClient::sendCommand(const char* cmd){
 	
-	this->send(cmd, true);
+	this->send(cmd);
 	//negotiation until the server show the command prompt again
 	if (strcmp(cmd, "exit") != 0){
 		return this->waitPrompt();
+	}
+	else{
+		this->disconnect();
 	}
 	
 }
@@ -74,7 +79,7 @@ void telnetClient::disconnect(){
 	this->client->stop();
 }
 
-bool telnetClient::send(const char* buf, bool checkEcho){
+bool telnetClient::send(const char* buf, bool waitEcho){
 	
 	uint8_t l_size = strnlen(buf, MAX_OUT_BUFFER_LENGTH);
 	if(l_size == MAX_OUT_BUFFER_LENGTH){
@@ -82,150 +87,138 @@ bool telnetClient::send(const char* buf, bool checkEcho){
 		return false;
 	}
 	
-	//emptyInputBuffer(true);
-	
 	char l_outBuffer[MAX_OUT_BUFFER_LENGTH];
 	strlcpy(l_outBuffer, buf, MAX_OUT_BUFFER_LENGTH);
 	if(strlcat(l_outBuffer, "\r\n", MAX_OUT_BUFFER_LENGTH) >= MAX_OUT_BUFFER_LENGTH){
 		DEBUG_PRINT(F("send|BAD INPUT"));
 		return false;
 	}
-	if(checkEcho){
-		l_size = strnlen(l_outBuffer, MAX_OUT_BUFFER_LENGTH);
-		for (uint8_t i = 0; i < l_size; ++i){
-			if(l_outBuffer[i] > 0){
-				this->client->write(l_outBuffer[i]);
-				this->print(l_outBuffer[i]);
-				while (this->client->available () == 0) delay (1);
-				byte inByte = this->client->read();
-				if((char)inByte != l_outBuffer[i]){
-				DEBUG_PRINT(F("send|WRONG ECHO FROM SERVER"));
-				return false;
-			}
-			}
-		} 
-	}
-	else{
-		this->client->write(l_outBuffer);
-	}
-	this->client->flush();
-	this->print('\r');
-	return true;
-}
-
-void telnetClient::negotiation(){
 	
-	while (this->client->available() == 0) delay (1);        
-	do {                                               
-		this->negotiate();                                  
-		delay(NEGOTIATION_DELAY);                                     
+	l_size = strnlen(l_outBuffer, MAX_OUT_BUFFER_LENGTH);
+	for (uint8_t i = 0; i < l_size; ++i){
+		if(l_outBuffer[i] > 0){
+			this->client->write(l_outBuffer[i]);
+			this->print(l_outBuffer[i]);
+			if (waitEcho){
+				while (this->client->available () == 0) delay (1);
+				char inByte = this->client->read();
+			}
+		}
 	}
-	while(this->client->available() > 0);
-
+		 
+	//this->print('\r');
+	return true;
 }
 
 void telnetClient::negotiate(){
 	
-	int inByte, verb, opt;    
+	byte verb, opt;    
+	byte outBuf[3] = {255, 0, 0};
 	
-	while (this->client->available () > 0) {                    
-		inByte = this->client->read ();                         
-		switch (inByte) {                                     
-			case -1:        
-				DEBUG_PRINT(F("negotiate|what?"));
-				break;                                            
-			case 255:
-				//is stuff to negotiate with the server
-				DEBUG_PRINT(F("negotiate|server:IAC"));
-				verb = this->client->read ();                        
-				if (verb == - 1) break;                       
-				switch (verb) {                               
-					case 255:                    
-						//...no it isn't!
-						DEBUG_PRINT(F("negotiate|server:IAC escape"));
-						this->print(char (verb));
-					break;                                    
-					case 251:
-					  //to a WILL statement... 
-					  DEBUG_PRINT(F("negotiate|server:WILL"));
-					  opt = this->client->read();
-					  if (opt == -1) break;
-					  DEBUG_PRINT(F("negotiate|server opt: "));
-					  DEBUG_PRINT(opt);
-					  //always answer DO!
-					  DEBUG_PRINT(F("negotiate|client:IAC"));
-					  this->client->write (255);
-					  DEBUG_PRINT(F("negotiate|client:DO"));
-					  this->client->write (253);
-					  this->client->write(opt);
-					break;
-					case 252:                                 
-					  DEBUG_PRINT(F("negotiate|server:WONT"));
-					break;
-					case 253:              
-					  //to a DO request...		
-					  DEBUG_PRINT(F("negotiate|server:DO"));
-					  opt = this->client->read();
-					  if (opt == -1) break;
-					  DEBUG_PRINT(F("negotiate|server opt: "));
-					  DEBUG_PRINT(opt);
-					  //always answer WONT!
-					  this->client->write(255);
-					  DEBUG_PRINT(F("negotiate|client:IAC"));
-					  this->client->write(252);
-					  DEBUG_PRINT(F("negotiate|client:WONT"));
-					  this->client->write(opt);
-					break;
-					case 254:                                 
-					  DEBUG_PRINT(F("negotiate|server:DONT"));     
-					break;                                    
-				}
-			break;                                            
-			default:                                          
-				//is stuff to be displayed
-				this->print(char(inByte));
-			break;                                            
-		}
+	DEBUG_PRINT(F("negotiate|server:IAC"));
+	verb = this->client->read ();                        
+	if (verb == - 1) return;                       
+	switch (verb) {                               
+		case 255:                    
+			//...no it isn't!
+			DEBUG_PRINT(F("negotiate|server:IAC escape"));
+			this->print(char (verb));
+		break;                                    
+		case 251:
+		  //to a WILL statement... 
+		  DEBUG_PRINT(F("negotiate|server:WILL"));
+		  opt = this->client->read();
+		  if (opt == -1) break;
+		  DEBUG_PRINT(F("negotiate|server opt: "));
+		  DEBUG_PRINT(opt);
+		  //always answer DO!
+		  outBuf[1] = 253;
+		  outBuf[2] = opt;
+		  this->client->write(outBuf, 3);
+		  this->client->flush();
+		  DEBUG_PRINT(F("negotiate|client:IAC"));
+		  DEBUG_PRINT(F("negotiate|client:DO"));
+		break;
+		case 252:                                 
+		  DEBUG_PRINT(F("negotiate|server:WONT"));
+		break;
+		case 253:              
+		  //to a DO request...		
+		  DEBUG_PRINT(F("negotiate|server:DO"));
+		  opt = this->client->read();
+		  if (opt == -1) break;
+		  DEBUG_PRINT(F("negotiate|server opt: "));
+		  DEBUG_PRINT(opt);
+		  //alway answer WONT!
+		  outBuf[1] = 252;
+		  outBuf[2] = opt;
+		  this->client->write(outBuf, 3);
+		  this->client->flush();
+		  DEBUG_PRINT(F("negotiate|client:IAC"));
+		  DEBUG_PRINT(F("negotiate|client:WONT"));
+		break;
+		case 254:                                 
+		  DEBUG_PRINT(F("negotiate|server:DONT"));     
+		break;                                    
 	}
+			
 }
 
-bool telnetClient::listenUntil(char c){
-
-	char l_cArr[1] = {c};
-	return listenUntil(l_cArr, 1);
-}
-
-bool telnetClient::listenUntil(char* c, uint8_t len){
-	
-	//listen incoming bytes untile one of the chars in the array arrive
-	
-	char l_lastByte = 0;
-	unsigned long startMillis = millis();
+void telnetClient::listen(){
 	
 	while (this->client->available() == 0) delay (1);   
-	bool l_bTerminator = false;
+	
+	byte inByte;
+	unsigned long startMillis = millis();
+	
+	while(1){
+		if (client->available() > 0){
+			startMillis = millis();
+			inByte = this->client->read ();
+			if (inByte <= 0){
+				//DEBUG_PRINT(F("listen|what?"));
+			}
+			else if(inByte == 255){
+				this->negotiate();
+			}
+			else{
+				//is stuff to be displayed
+				this->print(char(inByte));
+			}
+		}
+		else if (millis() - startMillis > LISTEN_TOUT){
+			DEBUG_PRINT(F("listen|TIMEOUT!!!"));     
+			return;
+		}
+	}				
+}	
+
+bool telnetClient::listenUntil(char c){
+	
+	byte inByte;
+	//listen incoming bytes untile one char in the array arrive
+	while (this->client->available() == 0) delay (1);   
 	
 	do {                            
 		if(this->client->available() > 0){
-			l_lastByte = this->client->read();
-			if(l_lastByte > 0)this->print(l_lastByte);                                     
-			
-			for (uint8_t i = 0; i < len; ++i){
-				if (l_lastByte == c[i]){
-					DEBUG_PRINT(F("listenUntil|TERMINATOR RECEIVED"));
-					l_bTerminator = true;
-					break;
-				}
+			inByte = this->client->read();
+			if (inByte <= 0){
+				//DEBUG_PRINT(F("listen|what?"));
+			}
+			else if(inByte == 255){
+				this->negotiate();
+			}
+			else{
+				//is stuff to be displayed
+				this->print(char(inByte));
+			}
+			if (char(inByte) == c){
+				DEBUG_PRINT(F("listenUntil|TERMINATOR RECEIVED"));
+				return true;
 			}
 		}                   
-	}while (!l_bTerminator && this->client->connected() && (millis()-startMillis < LISTEN_TOUT));
+	}while (1);
 	
-	if(millis()-startMillis >= LISTEN_TOUT){
-		DEBUG_PRINT(F("listenUntil|TIMEOUT OCCURED"));
-		return false;
-	}
-	
-	return true;
 }
 
 bool telnetClient::waitPrompt(){
@@ -235,20 +228,24 @@ bool telnetClient::waitPrompt(){
 	
 	do
 	{
-		if (!this->listenUntil(PROMPT_CHARS, ARRAYSIZE(PROMPT_CHARS))) return false;
+		if (!this->listenUntil(m_promptChar)) return false;
 		char l_lastByte = this->client->read();
 		do
 		{
 			l_bLoop = this->client->available() > 0;
 			if (l_bLoop){
 				DEBUG_PRINT(F("waitPrompt|FALSE PROMPT DETECTED"));
+				this->print('\r');
+				//this->print('\n');
 				break;
 			}
-			
 		}while(millis()-startMillis < PROMPT_REC_TOUT);
 		
 	}while(l_bLoop);
 	
+	//this->print('\n');
+	//this->print('\r');
+	DEBUG_PRINT(F("waitPrompt|END"));
 	return true;
 }
 
@@ -257,13 +254,8 @@ void telnetClient::print(char c){
 	Serial.print(c);
 }
 
-void telnetClient::emptyInputBuffer(bool printIt){
-	
-	char l_lastByte;
-	//empty the input buffer
-	while (this->client->available() > 0){
-		l_lastByte = this->client->read();
-		if (printIt) this->print(l_lastByte);
-	}
+void telnetClient::setPromptChar(char c){
+	m_promptChar = c;
 }
+
 
