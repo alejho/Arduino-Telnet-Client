@@ -22,7 +22,8 @@
 #ifndef TELNETC_H
 #define TELNETC_H
 
-#include <Ethernet.h>
+#include <ESP8266WiFi.h>
+
 
 //#define TNDBG 1
 //#define MT_VM 1//for me to work with a virtual machine running a mikrotik router
@@ -45,11 +46,11 @@ const unsigned int LISTEN_TOUT = 5000;
 const uint16_t PROMPT_REC_TOUT = 300;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
-class telnetClient{
+class ESP8266telnetClient{
 
 public:
 
-    telnetClient(EthernetClient& client);
+    ESP8266telnetClient(WiFiClient& client);
 
     bool login(IPAddress serverIpAddress, const char* username, const char* password, uint8_t port = 23);
 	bool sendCommand(const char* cmd);
@@ -58,7 +59,7 @@ public:
 
 private:
 	
-	EthernetClient* client;
+	WiFiClient* client;
 	char m_promptChar = '>';
 	
 	bool send(const char* buf, bool waitEcho = true);
