@@ -36,7 +36,7 @@ void setup () {
 // We start by connecting to a WiFi network
   WiFi.mode(WIFI_STA);
   WiFiMulti.addAP(ssid, password);
-  WiFiMulti.addAP(ssid2,password);
+  WiFiMulti.addAP(ssid2,password2);
 
   Serial.println();
   Serial.println();
