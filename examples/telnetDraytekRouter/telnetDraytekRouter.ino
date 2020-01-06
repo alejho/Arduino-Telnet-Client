@@ -10,7 +10,7 @@
 #define STAPSK2  "*********"
 #endif
 
-//put here your raspi ip address, and login details
+//put here your router ip address, and login details
 IPAddress draytekRouterIp (192, 168, 1, 2);
 const char* user = "************";
 const char* pwd = "***********"; 
