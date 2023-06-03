@@ -10,8 +10,8 @@
 #define STAPSK2  "*********"
 #endif
 
-//put here your raspi ip address, and login details
-IPAddress mikrotikRouterIp (192, 168, 1, 2);
+//put here your router ip address, and login details
+IPAddress draytekRouterIp (192, 168, 1, 2);
 const char* user = "************";
 const char* pwd = "***********"; 
 
@@ -27,16 +27,16 @@ WiFiClient client;
                                  
 ESP8266telnetClient tc(client); 
 
-    
+  
 
 void setup () { 
-
                                        
   Serial.begin (9600);                              
+
 // We start by connecting to a WiFi network
   WiFi.mode(WIFI_STA);
   WiFiMulti.addAP(ssid, password);
-  WiFiMulti.addAP(ssid2,password);
+  WiFiMulti.addAP(ssid2,password2);
 
   Serial.println();
   Serial.println();
@@ -53,30 +53,34 @@ void setup () {
   Serial.println(WiFi.localIP());
   Serial.println("Connecting.... ");
 
+
+
+
   //WHICH CHARACTER SHOULD BE INTERPRETED AS "PROMPT"?
   tc.setPromptChar('>');
 
   //this is to trigger manually the login 
   //since it could be a problem to attach the serial monitor while negotiating with the server (it cause the board reset)
   //remove it or replace it with a delay/wait of a digital input in case you're not using the serial monitors
-  char key = 0;
-  Serial.println("\r\npress Enter to begin:");
-  do{
-    key = Serial.read();
-  }while(key<=0);
   
-  //PUT HERE YOUR USERNAME/PASSWORD
-  if(tc.login(mikrotikRouterIp, "admin", "")){        //tc.login(mikrotikRouterIp, "admin", "", 1234) if you want to specify a port different than 23
-    tc.sendCommand("ip");
-    tc.sendCommand("address");
-    tc.sendCommand("print");
-         
+//  char key = 0;
+//  Serial.println("\r\npress Enter to begin:");
+//  do{
+//    key = Serial.read();
+//  }while(key<=0);
+
+    //PUT HERE YOUR USERNAME/PASSWORD
+  if(tc.login(draytekRouterIp, user, pwd)){        //tc.login(RouterIp, "admin", "", 1234) if you want to specify a port different than 23
+    tc.sendCommand("ipf view -V");
+    tc.sendCommand("exit");         
   }
   else{
     Serial.println("login failed");
   }
   tc.disconnect();
+
 }
 
 void loop () {                                         //  run your loop routine
+
 }

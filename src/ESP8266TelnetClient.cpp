@@ -20,14 +20,14 @@
  * 
  */
  
-#include "TelnetClient.h"
+#include "ESP8266telnetClient.h"
 
 
-telnetClient::telnetClient(EthernetClient& client){
+ESP8266telnetClient::ESP8266telnetClient(WiFiClient& client){
 	this->client = &client;	
 }
 
-bool telnetClient::login(IPAddress serverIpAddress, const char* username, const char* password, uint8_t port){
+bool ESP8266telnetClient::login(IPAddress serverIpAddress, const char* username, const char* password, uint8_t port){
 	
 	this->print('\n');
 	this->print('\r');
@@ -36,8 +36,10 @@ bool telnetClient::login(IPAddress serverIpAddress, const char* username, const 
 	if(this->client->connect(serverIpAddress, port)){
 		DEBUG_PRINT(F("login|connected!"));
 		//here there will be the initial negotiation
-		//listenUntil(':');
-		listen();
+		if(!listenUntil(':')){
+			return false;
+		}
+		//listen();
 		DEBUG_PRINT(F("login|sending username"));
 		if (!this->send(username, false)) return false; 
 		listenUntil(':');
@@ -62,7 +64,7 @@ bool telnetClient::login(IPAddress serverIpAddress, const char* username, const 
 	}
 }
 
-bool telnetClient::sendCommand(const char* cmd){
+bool ESP8266telnetClient::sendCommand(const char* cmd){
 	
 	this->send(cmd);
 	//negotiation until the server show the command prompt again
@@ -75,11 +77,11 @@ bool telnetClient::sendCommand(const char* cmd){
 	
 }
 
-void telnetClient::disconnect(){
+void ESP8266telnetClient::disconnect(){
 	this->client->stop();
 }
 
-bool telnetClient::send(const char* buf, bool waitEcho){
+bool ESP8266telnetClient::send(const char* buf, bool waitEcho){
 	
 	uint8_t l_size = strnlen(buf, MAX_OUT_BUFFER_LENGTH);
 	if(l_size == MAX_OUT_BUFFER_LENGTH){
@@ -110,7 +112,7 @@ bool telnetClient::send(const char* buf, bool waitEcho){
 	return true;
 }
 
-void telnetClient::negotiate(){
+void ESP8266telnetClient::negotiate(){
 	
 	byte verb, opt;    
 	byte outBuf[3] = {255, 0, 0};
@@ -164,7 +166,7 @@ void telnetClient::negotiate(){
 			
 }
 
-void telnetClient::listen(){
+void ESP8266telnetClient::listen(){
 	
 	while (this->client->available() == 0) delay (1);   
 	
@@ -193,12 +195,13 @@ void telnetClient::listen(){
 	}				
 }	
 
-bool telnetClient::listenUntil(char c){
+bool ESP8266telnetClient::listenUntil(char c){
 	
 	byte inByte;
+	unsigned long startMillis = millis();
 	//listen incoming bytes untile one char in the array arrive
 	while (this->client->available() == 0) delay (1);   
-	
+	startMillis = millis();
 	do {                            
 		if(this->client->available() > 0){
 			inByte = this->client->read();
@@ -216,12 +219,16 @@ bool telnetClient::listenUntil(char c){
 				DEBUG_PRINT(F("listenUntil|TERMINATOR RECEIVED"));
 				return true;
 			}
+		}
+		else if (millis() - startMillis > LISTEN_TOUT){
+			DEBUG_PRINT(F("listen|TIMEOUT!!!"));     
+			return false;
 		}                   
 	}while (1);
 	
 }
 
-bool telnetClient::waitPrompt(){
+bool ESP8266telnetClient::waitPrompt(){
 	
 	bool l_bLoop = false;
 	unsigned long startMillis = millis();
@@ -249,12 +256,12 @@ bool telnetClient::waitPrompt(){
 	return true;
 }
 
-void telnetClient::print(char c){
+void ESP8266telnetClient::print(char c){
 	//edit this function if you want a different output!
 	Serial.print(c);
 }
 
-void telnetClient::setPromptChar(char c){
+void ESP8266telnetClient::setPromptChar(char c){
 	m_promptChar = c;
 }
 

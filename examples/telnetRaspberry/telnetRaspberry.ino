@@ -1,29 +1,58 @@
-#include <TelnetClient.h>
-#include <SPI.h>
-#include <Ethernet.h>
+#include <ESP8266TelnetClient.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
+
+//Enter your Wifi details here (multiple SSIDs possible)
+#ifndef STASSID
+#define STASSID "**********"
+#define STAPSK  "**********"
+#define STASSID2 "*********"
+#define STAPSK2  "*********"
+#endif
+
+//put here your raspi ip address, and login details
+IPAddress raspberryIp (192, 168, 1, 1); 
+const char* user = "************";
+const char* pwd = "***********"; 
+
+const char* ssid     = STASSID;
+const char* password = STAPSK;
+const char* ssid2     = STASSID2;
+const char* password2 = STAPSK2;
 
 
-EthernetClient client;                                   
-telnetClient tc(client); 
+ESP8266WiFiMulti WiFiMulti;
 
-byte clientMAC[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; 
-IPAddress clientIp (192, 168, 1, 177); 
+WiFiClient client;
+                                 
+ESP8266telnetClient tc(client); 
 
-//put here your raspberry's ip address
-IPAddress raspberryIp (192, 168, 1, 11);    
+ 
 
 void setup () { 
                                        
   Serial.begin (9600);                                 
-  Ethernet.begin (clientMAC, clientIp);   
-  
-  //want to use dhcp?
-  //if (!Ethernet.begin (clientMAC)){
-       //Serial.println("\r\nDHCP error");
-       //while(1);
-  //}
+// We start by connecting to a WiFi network
+  WiFi.mode(WIFI_STA);
+  WiFiMulti.addAP(ssid, password);
+  WiFiMulti.addAP(ssid2,password);
 
-  //WICH CHARACTER SHOULD BE INTERPRETED AS "PROMPT"?
+  Serial.println();
+  Serial.println();
+  Serial.print("Wait for WiFi... ");
+
+  while (WiFiMulti.run() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.println("Connecting.... ");
+
+  //WHICH CHARACTER SHOULD BE INTERPRETED AS "PROMPT"?
   tc.setPromptChar('$');
 
   //this is to trigger manually the login 
